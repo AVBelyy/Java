@@ -1,4 +1,9 @@
 *.swp
 *.class
+*.jar
 *.iml
+*.txt
 .idea/
+out/
+bin/
+docs/
