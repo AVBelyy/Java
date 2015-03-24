@@ -30,8 +30,13 @@ public class FixedThreadPool {
     }
 
     public void shutdown() throws InterruptedException {
-        for (Thread thread : workerThreads) {
-            thread.join();
+        synchronized (pool) {
+            pool.clear();
         }
+
+        for (Thread thread : workerThreads) {
+            thread.interrupt();
+        }
+
     }
 }

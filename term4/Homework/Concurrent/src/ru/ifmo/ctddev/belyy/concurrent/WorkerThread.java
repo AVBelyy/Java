@@ -13,12 +13,14 @@ public class WorkerThread extends Thread {
     public void run() {
         Runnable task;
 
-        synchronized (pool) {
-            task = pool.poll();
-        }
+        while (!Thread.interrupted()) {
+            synchronized (pool) {
+                task = pool.poll();
+            }
 
-        if (task != null) {
-            task.run();
+            if (task != null) {
+                task.run();
+            }
         }
     }
 }

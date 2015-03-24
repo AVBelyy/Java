@@ -2,6 +2,7 @@ package ru.ifmo.ctddev.belyy.concurrent;
 
 import info.kgeorgiy.java.advanced.concurrent.ListIP;
 import info.kgeorgiy.java.advanced.concurrent.ScalarIP;
+import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -146,7 +147,7 @@ public class IterativeParallelism implements ListIP, ScalarIP {
 
         if (mapper != null) {
             // Run jobs and collect results.
-            results = mapper.run(Worker::getResult, workers);
+            results = mapper.map(Worker::getResult, workers);
         } else {
             // Run jobs.
             List<Thread> threads = new ArrayList<>();
