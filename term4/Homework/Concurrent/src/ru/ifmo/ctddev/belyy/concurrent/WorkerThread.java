@@ -2,6 +2,10 @@ package ru.ifmo.ctddev.belyy.concurrent;
 
 import java.util.Queue;
 
+/**
+ * Worker thread for FixedThreadPool.
+ * Polls jobs from task queue and executes one if present.
+ */
 public class WorkerThread extends Thread {
     private final Queue<Runnable> pool;
 

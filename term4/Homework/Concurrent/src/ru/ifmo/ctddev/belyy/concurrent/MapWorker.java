@@ -3,6 +3,12 @@ package ru.ifmo.ctddev.belyy.concurrent;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Parallel map worker, calculating and storing result in outList.
+ * @param <T> type of argument.
+ * @param <R> type of result.
+ * @see java.lang.Runnable
+ */
 public class MapWorker<T, R> implements Runnable {
     private final Function<? super T, ? extends R> f;
     private final T arg;

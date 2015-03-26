@@ -1,5 +1,9 @@
 package ru.ifmo.ctddev.belyy.concurrent;
 
+/**
+ * AtomicInteger-like counter
+ * @see java.util.concurrent.atomic.AtomicInteger
+ */
 public class Counter {
     private int count;
 

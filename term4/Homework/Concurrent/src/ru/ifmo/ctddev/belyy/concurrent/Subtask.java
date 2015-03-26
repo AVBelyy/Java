@@ -1,5 +1,8 @@
 package ru.ifmo.ctddev.belyy.concurrent;
 
+/**
+ * Worker wrapper that increments counter after the wrapped job's done.
+ */
 public class Subtask implements Runnable {
     private Counter counter;
     private Runnable runnable;
