@@ -29,8 +29,6 @@ public class Minimum<T> extends LazyWorker<T> {
 
     @Override
     public T mergeResults(List<T> results) {
-        Worker<T> worker = new Minimum<>(results, comparator);
-        worker.run();
-        return worker.getResult();
+        return new Minimum<>(results, comparator).getResult();
     }
 }

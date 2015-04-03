@@ -30,8 +30,6 @@ public class Map<T, R> extends LazyWorker<List<R>> {
 
     @Override
     public List<R> mergeResults(List<List<R>> results) {
-        Worker<List<R>> worker = new ConcatList<>(results);
-        worker.run();
-        return worker.getResult();
+        return new ConcatList<>(results).getResult();
     }
 }

@@ -29,8 +29,6 @@ public class Filter<T> extends LazyWorker<List<T>> {
 
     @Override
     public List<T> mergeResults(List<List<T>> results) {
-        Worker<List<T>> worker = new ConcatList<>(results);
-        worker.run();
-        return worker.getResult();
+        return new ConcatList<>(results).getResult();
     }
 }
