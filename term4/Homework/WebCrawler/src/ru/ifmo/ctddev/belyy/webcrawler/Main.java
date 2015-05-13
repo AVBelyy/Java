@@ -1,10 +1,18 @@
 package ru.ifmo.ctddev.belyy.webcrawler;
 
-import info.kgeorgiy.java.advanced.CachingDownloader;
-import info.kgeorgiy.java.advanced.Crawler;
+import info.kgeorgiy.java.advanced.crawler.CachingDownloader;
+import info.kgeorgiy.java.advanced.crawler.Crawler;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
+/*
+    Problems:
+        0) Big timeout
+        1) No perHost
+ */
 public class Main {
     public static void main(String[] args) {
         try {
@@ -28,7 +36,10 @@ public class Main {
             }
 
             try (Crawler crawler = new WebCrawler(new CachingDownloader(), downloads, extractors, perHost)) {
-                for (String link : crawler.download(url, depth)) {
+                List<String> urls = crawler.download(url, depth);
+                List<String> uniqueUrls = new ArrayList<>(new HashSet<>(urls));
+                System.out.printf("%d %d\n", urls.size(), uniqueUrls.size());
+                for (String link : urls) {
                     System.out.println("-> " + link);
                 }
             } catch (IOException e) {

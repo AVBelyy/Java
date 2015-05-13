@@ -1,4 +1,4 @@
-package info.kgeorgiy.java.advanced;
+package info.kgeorgiy.java.advanced.crawler;
 
 import java.net.MalformedURLException;
 import java.net.URI;

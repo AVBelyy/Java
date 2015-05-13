@@ -1,4 +1,4 @@
-package info.kgeorgiy.java.advanced;
+package info.kgeorgiy.java.advanced.crawler;
 
 import java.io.IOException;
 import java.util.List;

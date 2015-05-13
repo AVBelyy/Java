@@ -1,4 +1,4 @@
-package info.kgeorgiy.java.advanced;
+package info.kgeorgiy.java.advanced.crawler;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
