@@ -1,107 +1,125 @@
 package ru.ifmo.ctddev.belyy.webcrawler;
 
-import info.kgeorgiy.java.advanced.crawler.Crawler;
-import info.kgeorgiy.java.advanced.crawler.Document;
-import info.kgeorgiy.java.advanced.crawler.Downloader;
-import info.kgeorgiy.java.advanced.crawler.URLUtils;
+import info.kgeorgiy.java.advanced.crawler.*;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.*;
 
 public class WebCrawler implements Crawler {
-    private Downloader downloader;
-    private FixedThreadPool downloadPool;
-    private FixedThreadPool extractPool;
-    private Set<String> downloadedPages;
-    private Set<String> extractedPages;
-    public Map<String, List<Runnable>> perHostQueue;
+    private final int perHost;
+    private final Downloader downloader;
+    private final ExecutorService downloadPool;
+    private final ExecutorService extractPool;
 
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
         this.downloader = downloader;
-        this.downloadPool = new FixedThreadPool(downloaders, perHost);
-        this.extractPool = new FixedThreadPool(extractors, Integer.MAX_VALUE);
-        this.downloadedPages = Collections.newSetFromMap(new ConcurrentHashMap<>());
-        this.extractedPages = Collections.newSetFromMap(new ConcurrentHashMap<>());
-        this.perHostQueue = new TreeMap<>();
+        this.downloadPool = Executors.newFixedThreadPool(downloaders);
+        this.extractPool = Executors.newFixedThreadPool(extractors);
+        this.perHost = perHost;
     }
 
     @Override
-    public List<String> download(String url, int depth) throws IOException {
-        if (depth == 1) {
-            return Arrays.asList(url);
-        } else {
-            List<String> links = new ArrayList<>();
-            IOException[] maybeE = new IOException[1];
-            maybeE[0] = null;
+    public Result download(String initialUrl, int depth) {
+            final Map<String, IOException> errors = new ConcurrentHashMap<>();
 
-            Queue<URLTask> queue = new ConcurrentLinkedQueue<>();
-            queue.add(new URLTask(url, depth));
+            Queue<String> queue = new ConcurrentLinkedQueue<>();
+            final Set<String> visited = Collections.newSetFromMap(new ConcurrentHashMap<>());
+            queue.add(initialUrl);
+            visited.add(initialUrl);
 
-            while (!queue.isEmpty()) {
-                URLTask task = queue.poll();
-                System.out.println(queue.size());
+            for (int d = 0; d < depth; d++) {
+                final int curDepth = d;
+                final Set<String> queue2 = Collections.newSetFromMap(new ConcurrentHashMap<>());
+                final Map<String, ConcurrentLinkedQueue<String>> perHostQueue = new ConcurrentHashMap<>();
+                final Map<String, Integer> semaphores = new ConcurrentHashMap<>();
+                final ConcurrentLinkedQueue<Future> pending = new ConcurrentLinkedQueue<>();
 
-                if (task.depth == 1) {
-                    links.add(task.url);
-                } else if (!downloadedPages.contains(task.url)) {
-                    downloadedPages.add(task.url);
-                    AtomicInteger v = new AtomicInteger(1);
-                    String host = URLUtils.getHost(task.url);
+                for (String url : queue) {
+                    String host;
+                    try {
+                        host = URLUtils.getHost(url);
+                    } catch (MalformedURLException e) {
+                        continue;
+                    }
 
-                    downloadPool.execute(host, () -> {
-                        try {
-                            Document document = downloader.download(task.url);
+                    synchronized (perHostQueue) {
+                        perHostQueue.putIfAbsent(host, new ConcurrentLinkedQueue<>());
+                        perHostQueue.get(host).add(url);
+                    }
 
-                            extractPool.execute(host, () -> {
-                                try {
-                                    links.add(task.url);
+                    synchronized (semaphores) {
+                        semaphores.putIfAbsent(host, 0);
+                        int count = semaphores.get(host);
+                        if (count < perHost) {
+                            semaphores.put(host, count + 1);
+                            pending.add(downloadPool.submit(() -> {
+                                while (true) {
+                                    String curUrl = "";
 
-                                    if (!extractedPages.contains(task.url)) {
-                                        extractedPages.add(task.url);
-                                        for (String link : document.extractLinks()) {
-                                            queue.add(new URLTask(link, task.depth - 1));
+                                    synchronized (perHostQueue) {
+                                        if (!perHostQueue.get(host).isEmpty()) {
+                                            curUrl = perHostQueue.get(host).poll();
                                         }
                                     }
-                                } catch (IOException e) {
-                                    maybeE[0] = e;
-                                } finally {
-                                    v.set(0);
+
+                                    if (!curUrl.equals("")) {
+                                        final String curUrlCopy = curUrl;
+                                        try {
+                                            Document document = downloader.download(curUrl);
+
+                                            if (curDepth + 1 < depth) {
+                                                pending.add(extractPool.submit(() -> {
+                                                    try {
+                                                        List<String> links = document.extractLinks();
+                                                        for (String link : links) {
+                                                            synchronized (visited) {
+                                                                if (!visited.contains(link)) {
+                                                                    visited.add(link);
+                                                                    queue2.add(link);
+                                                                }
+                                                            }
+                                                        }
+                                                    } catch (IOException e) {
+                                                        errors.putIfAbsent(curUrlCopy, e);
+                                                    }
+                                                }));
+                                            }
+                                        } catch (IOException e) {
+                                            errors.putIfAbsent(curUrl, e);
+                                        }
+                                    } else {
+                                        synchronized (semaphores) {
+                                            semaphores.put(host, semaphores.get(host) - 1);
+                                        }
+                                        return;
+                                    }
                                 }
-                            });
-                        } catch (IOException e) {
-                            maybeE[0] = e;
-                            v.set(0);
+                            }));
                         }
-                    });
-
-                    while (!v.compareAndSet(0, 1));
-
-                    if (maybeE[0] != null) {
-                        throw maybeE[0];
                     }
                 }
+
+                while (!pending.isEmpty()) {
+                    Future f = pending.poll();
+                    try {
+                        f.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                queue = new ConcurrentLinkedQueue<>(queue2);
             }
 
-            return links;
-        }
+            visited.removeAll(errors.keySet());
+            return new Result(new ArrayList<>(visited), errors);
     }
 
     @Override
     public void close() {
         downloadPool.shutdown();
         extractPool.shutdown();
-    }
-
-    private final class URLTask {
-        public final String url;
-        public final int depth;
-
-        public URLTask(String url, int depth) {
-            this.url = url;
-            this.depth = depth;
-        }
     }
 }

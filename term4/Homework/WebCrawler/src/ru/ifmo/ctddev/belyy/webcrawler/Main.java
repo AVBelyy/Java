@@ -2,6 +2,7 @@ package ru.ifmo.ctddev.belyy.webcrawler;
 
 import info.kgeorgiy.java.advanced.crawler.CachingDownloader;
 import info.kgeorgiy.java.advanced.crawler.Crawler;
+import info.kgeorgiy.java.advanced.crawler.Result;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,7 +37,8 @@ public class Main {
             }
 
             try (Crawler crawler = new WebCrawler(new CachingDownloader(), downloads, extractors, perHost)) {
-                List<String> urls = crawler.download(url, depth);
+                Result result = crawler.download(url, depth);
+                List<String> urls = result.getDownloaded();
                 List<String> uniqueUrls = new ArrayList<>(new HashSet<>(urls));
                 System.out.printf("%d %d\n", urls.size(), uniqueUrls.size());
                 for (String link : urls) {

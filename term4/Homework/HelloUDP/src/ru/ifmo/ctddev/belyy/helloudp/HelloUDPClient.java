@@ -33,7 +33,7 @@ public class HelloUDPClient implements HelloClient {
                     socket = new DatagramSocket();
                     socket.setSoTimeout(200);
                     recvBuf = new byte[socket.getReceiveBufferSize()];
-                } catch (IOException e) {
+                } catch (SocketException e) {
                     e.printStackTrace();
                     return;
                 }
@@ -46,6 +46,7 @@ public class HelloUDPClient implements HelloClient {
                         socket.send(new DatagramPacket(sendBuf, sendBuf.length, address, port));
                     } catch (IOException e) {
                         // very sorry, so sad
+                        System.out.println("socket is broken");
                         return;
                     }
 
@@ -58,6 +59,7 @@ public class HelloUDPClient implements HelloClient {
                             //System.out.println("<- " + response);
                         } else {
                             j--;
+                            System.out.println("bad response");
                         }
                     } catch (IOException e) {
                         j--;

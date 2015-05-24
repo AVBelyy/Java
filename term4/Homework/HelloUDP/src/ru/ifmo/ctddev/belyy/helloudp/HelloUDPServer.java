@@ -18,7 +18,7 @@ public class HelloUDPServer implements HelloServer {
 
     private final List<DatagramSocket> sockets = new ArrayList<>();
     private final List<ExecutorService> threadPools = new ArrayList<>();
-    private boolean isRunning = true;
+    private volatile boolean isRunning = true;
 
     @Override
     public void start(int port, int threads) {
@@ -34,6 +34,7 @@ public class HelloUDPServer implements HelloServer {
         try {
             newSocket = new DatagramSocket(port);
             byte[] reqBuf = new byte[newSocket.getReceiveBufferSize()];
+            System.err.println(newSocket.getReceiveBufferSize());
             request = new DatagramPacket(reqBuf, reqBuf.length);
         } catch (SocketException e) {
             System.out.println("socket exception");
@@ -51,15 +52,16 @@ public class HelloUDPServer implements HelloServer {
             while (isRunning) {
                 try {
                     newSocket.receive(request);
-
                     InetAddress clientAddress = request.getAddress();
                     int clientPort = request.getPort();
-                    byte[] respBuf = ("Hello, " + new String(request.getData(), 0, request.getLength())).getBytes(CHARSET);
-
-                    DatagramPacket response = new DatagramPacket(respBuf, respBuf.length, clientAddress, clientPort);
+                    // save buffer in thread-local variable
+                    final String requestText = new String(request.getData(), 0, request.getLength());
 
                     newThreadPool.execute(() -> {
                         try {
+                            byte[] respBuf = ("Hello, " + requestText).getBytes(CHARSET);
+                            DatagramPacket response = new DatagramPacket(respBuf, respBuf.length, clientAddress, clientPort);
+
                             newSocket.send(response);
                         } catch (IOException ignore) {}
                     });

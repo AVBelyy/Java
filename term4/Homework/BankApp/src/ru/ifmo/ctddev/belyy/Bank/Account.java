@@ -1,15 +1,27 @@
 package ru.ifmo.ctddev.belyy.Bank;
 
+import java.io.Serializable;
+import java.math.BigDecimal;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-public interface Account extends Remote {
-    // Узнать идентификатор
-    public String getId() throws RemoteException;
+/**
+ * RMI interface to person account in bank.
+ */
+public interface Account extends Remote, Serializable {
+    /**
+     * Returns the amount of funds available on account.
+     *
+     * @return the amount of funds.
+     * @throws RemoteException on any server exception.
+     */
+    public BigDecimal getAmount() throws RemoteException;
 
-    // Узнать количество денег
-    public long getAmount() throws RemoteException;;
-
-    // Установить количество денег
-    public void setAmount(long amount) throws RemoteException;;
+    /**
+     * Add <tt>amount</tt> items of money to account.
+     *
+     * @param amount amount of funds to increment account with.
+     * @throws RemoteException on any server exception.
+     */
+    public void incAmount(BigDecimal amount) throws RemoteException;
 }

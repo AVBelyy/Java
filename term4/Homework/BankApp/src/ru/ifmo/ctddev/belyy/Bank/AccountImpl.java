@@ -1,26 +1,29 @@
 package ru.ifmo.ctddev.belyy.Bank;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.math.BigDecimal;
 
 public class AccountImpl implements Account {
     private final String id;
-    private AtomicLong amount;
+    private BigDecimal amount;
 
     public AccountImpl(String id) {
         this.id = id;
-        amount = new AtomicLong(0);
+        this.amount = new BigDecimal(0);
     }
 
-    public String getId() {
-        return id;
+    public AccountImpl(AccountImpl other) {
+        this.id = other.id;
+        this.amount = other.amount;
     }
 
-    public long getAmount() {
-        return amount.get();
+    public BigDecimal getAmount() {
+        return amount;
     }
 
-    public void setAmount(long amount) {
-        System.out.println("Setting amount of money for account " + id);
-        this.amount.set(amount);
+    public void incAmount(BigDecimal deltaAmount) {
+        synchronized (this) {
+            System.out.println("Increasing amount of money for account " + id);
+            amount = amount.add(deltaAmount);
+        }
     }
 }
